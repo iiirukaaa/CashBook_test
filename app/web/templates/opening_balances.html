@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>{{ year }}年{{ month }}月 月初開始残高（支払い元ごと）</h2>
+  <p>クレジットカードは対象外です。</p>
+  {% if is_locked %}<p><strong>この月はロック中のため編集できません。</strong></p>{% endif %}
+  <form method="post" action="/opening-balances/{{ year }}/{{ month }}">
+    <table>
+      <thead>
+        <tr><th>支払い元</th><th>開始残高</th><th>備考</th></tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td>{{ row.account.name }}</td>
+          <td><input type="number" name="opening_balance_{{ row.account.id }}" value="{{ row.opening_balance }}" required {% if is_locked %}disabled{% endif %}></td>
+          <td><input type="text" name="note_{{ row.account.id }}" value="{{ row.note }}" {% if is_locked %}disabled{% endif %}></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3">支払い元が未登録です。設定画面から追加してください。</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="row">
+      <button type="submit" {% if is_locked %}disabled{% endif %}>保存</button>
+      <a href="/month/{{ year }}/{{ month }}">月次ページへ戻る</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

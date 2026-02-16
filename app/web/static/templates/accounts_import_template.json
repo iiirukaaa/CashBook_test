@@ -1,0 +1,19 @@
+{
+  "accounts": [
+    {
+      "name": "現金",
+      "kind": "cash",
+      "note": "財布"
+    },
+    {
+      "name": "メイン銀行",
+      "kind": "bank",
+      "note": "給与受取"
+    },
+    {
+      "name": "Suica",
+      "kind": "prepaid",
+      "note": "交通系IC"
+    }
+  ]
+}

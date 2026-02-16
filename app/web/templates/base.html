@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ title or "家計簿" }}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<header class="header">
+  <h1>家計簿Web</h1>
+  <nav class="nav-row">
+    <a href="/?year={{ selected_year }}">メイン</a>
+    <a href="/settings?year={{ selected_year }}">設定</a>
+    <form method="get" action="/" class="inline row">
+      <label>年度の切り替え
+        <select name="year" onchange="this.form.submit()">
+          {% for y in year_options %}
+          <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}年</option>
+          {% endfor %}
+        </select>
+      </label>
+    </form>
+  </nav>
+</header>
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

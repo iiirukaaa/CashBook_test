@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>{{ year }}年 サマリ</h2>
+  <div class="stats">
+    <div>収入合計: {{ summary.income_total }} 円</div>
+    <div>支出合計: {{ summary.expense_total }} 円</div>
+    <div>差額: {{ summary.net }} 円</div>
+  </div>
+</section>
+
+<section class="panel">
+  <h3>支払い元一覧</h3>
+  <ul>
+    {% for a in accounts %}
+      <li>{{ a.name }} ({{ a.kind }})</li>
+    {% else %}
+      <li>未登録</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <h3>負債一覧</h3>
+  <ul>
+    {% for l in liabilities %}
+      <li>{{ l.name }}: {{ l.balance }} 円</li>
+    {% else %}
+      <li>未登録</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <h3>月次ページ</h3>
+  <div class="month-grid">
+    {% for m in months %}
+      <a class="chip" href="/month/{{ year }}/{{ m }}">{{ m }}月</a>
+    {% else %}
+      <div>表示できる月がありません。</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h2>{{ year }}年{{ month }}月</h2>
+  <div class="stats">
+    <div>収入: {{ summary.income_total }} 円</div>
+    <div>支出: {{ summary.expense_total }} 円</div>
+    <div>差額: {{ summary.net }} 円</div>
+    <div>調整: {{ summary.adjust_total }} 円</div>
+    <div>月初開始残高(合計): {{ summary.opening_balance }} 円</div>
+  </div>
+  <div class="row">
+    <form method="post" action="/month/{{ year }}/{{ month }}/lock" class="inline">
+      <input type="hidden" name="is_locked" value="{{ 0 if is_locked else 1 }}">
+      <button type="submit">{{ "ロック解除" if is_locked else "この月をロック" }}</button>
+    </form>
+    {% if is_locked %}<strong>この月はロック中のため、変更できません。</strong>{% endif %}
+  </div>
+  <p><a href="/opening-balances/{{ year }}/{{ month }}">月初開始残高を編集（支払い元ごと）</a></p>
+</section>
+
+<section class="panel">
+  <h3>取引一覧</h3>
+  <table>
+    <thead>
+      <tr><th>日付</th><th>種別</th><th>金額</th><th>支払い元</th><th>移動先</th><th>カテゴリ</th><th>内容メモ</th><th>備考</th><th>操作</th></tr>
+    </thead>
+    <tbody>
+    {% for tx in transactions %}
+      <tr>
+        <td>{{ tx.date }}</td>
+        <td>{{ tx_type_labels.get(tx.type, tx.type) }}</td>
+        <td>{{ tx.amount }}</td>
+        <td>{{ tx.account.name if tx.account else "" }}</td>
+        <td>{{ tx.to_account.name if tx.to_account else "" }}</td>
+        <td>{{ tx.category.name if tx.category else tx.category_free or "" }}</td>
+        <td>{{ tx.description or "" }}</td>
+        <td>{{ tx.note or "" }}</td>
+        <td>
+          {% if not is_locked %}
+          <a href="/month/{{ year }}/{{ month }}?edit={{ tx.id }}">編集</a>
+          <form class="inline" method="post" action="/month/{{ year }}/{{ month }}/transactions/{{ tx.id }}/delete">
+            <button type="submit">削除</button>
+          </form>
+          {% else %}-{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="9">取引なし</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="panel">
+  <h3>{% if editing_tx %}取引編集{% else %}取引追加{% endif %}</h3>
+  <form method="post" action="/month/{{ year }}/{{ month }}/transactions" class="grid-form">
+    {% if editing_tx %}<input type="hidden" name="tx_id" value="{{ editing_tx.id }}">{% endif %}
+    <label>対象年月 <input type="text" value="{{ year }}年{{ month }}月" disabled></label>
+    <label>日 <span class="req">※</span><input name="day" type="number" min="1" max="{{ max_day }}" value="{{ editing_tx.date.day if editing_tx else '' }}" required {% if is_locked %}disabled{% endif %}></label>
+    <label>種別 <span class="req">※</span>
+      <select name="type" required {% if is_locked %}disabled{% endif %}>
+        {% for t in ["income", "expense", "transfer", "adjust"] %}
+        <option value="{{ t }}" {% if editing_tx and editing_tx.type == t %}selected{% endif %}>{{ tx_type_labels.get(t, t) }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>金額 <span class="req">※</span><input name="amount" type="number" min="1" value="{{ editing_tx.amount if editing_tx else '' }}" required {% if is_locked %}disabled{% endif %}></label>
+    <label>支払い元 <span class="req">※</span>
+      <select name="account_id" {% if is_locked %}disabled{% endif %}>
+        <option value="">--</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}" {% if editing_tx and editing_tx.account_id == a.id %}selected{% endif %}>{{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>移動先
+      <select name="to_account_id" {% if is_locked %}disabled{% endif %}>
+        <option value="">--</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}" {% if editing_tx and editing_tx.to_account_id == a.id %}selected{% endif %}>{{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>カテゴリ
+      <select name="category_id" {% if is_locked %}disabled{% endif %}>
+        <option value="">--</option>
+        {% for c in categories %}
+        <option value="{{ c.id }}" {% if editing_tx and editing_tx.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>自由カテゴリ <input name="category_free" value="{{ editing_tx.category_free if editing_tx else '' }}" {% if is_locked %}disabled{% endif %}></label>
+    <label>内容メモ <input name="description" value="{{ editing_tx.description if editing_tx else '' }}" {% if is_locked %}disabled{% endif %}></label>
+    <label>備考 <input name="note" value="{{ editing_tx.note if editing_tx else '' }}" {% if is_locked %}disabled{% endif %}></label>
+    <button type="submit" {% if is_locked %}disabled{% endif %}>保存</button>
+    {% if editing_tx %}<a href="/month/{{ year }}/{{ month }}">キャンセル</a>{% endif %}
+  </form>
+</section>
+{% endblock %}
