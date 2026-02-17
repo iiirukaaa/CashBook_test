@@ -11,24 +11,30 @@
 
 <section class="panel">
   <h3>支払い元一覧</h3>
-  <ul>
-    {% for a in accounts %}
-      <li>{{ a.name }} ({{ a.kind }})</li>
-    {% else %}
-      <li>未登録</li>
-    {% endfor %}
-  </ul>
+  <table>
+    <thead><tr><th>名称</th><th>種別</th></tr></thead>
+    <tbody>
+      {% for a in accounts %}
+      <tr><td>{{ a.name }}</td><td>{{ a.kind }}</td></tr>
+      {% else %}
+      <tr><td colspan="2">未登録</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 
 <section class="panel">
   <h3>負債一覧</h3>
-  <ul>
-    {% for l in liabilities %}
-      <li>{{ l.name }}: {{ l.balance }} 円</li>
-    {% else %}
-      <li>未登録</li>
-    {% endfor %}
-  </ul>
+  <table>
+    <thead><tr><th>名称</th><th>残高</th></tr></thead>
+    <tbody>
+      {% for l in liabilities %}
+      <tr><td>{{ l.name }}</td><td>{{ l.balance }} 円</td></tr>
+      {% else %}
+      <tr><td colspan="2">未登録</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </section>
 
 <section class="panel">

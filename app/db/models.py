@@ -40,6 +40,7 @@ class User(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(255))
 
 
 class Account(TimestampMixin, Base):

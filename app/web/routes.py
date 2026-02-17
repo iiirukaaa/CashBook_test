@@ -5,16 +5,18 @@ import json
 from datetime import date
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Account, Category, Liability, MonthlyBalance, Transaction
+from app.db.models import Account, Category, Liability, MonthlyBalance, Transaction, User
 from app.db.session import get_db
+from app.services.auth import verify_password
 from app.services.month_locks import is_month_locked, set_month_lock
 from app.services.summary import get_month_summary, get_year_summary
 from app.services.transactions import ValidationError, validate_transaction_input
+from app.web.auth_cookie import AUTH_COOKIE_NAME
 
 router = APIRouter(tags=["web"])
 templates = Jinja2Templates(directory="app/web/templates")
@@ -59,6 +61,10 @@ def _base_context(selected_year: int) -> dict:
         "selected_year": selected_year,
         "year_options": _year_options(),
     }
+
+
+def _is_safe_next(next_path: str | None) -> bool:
+    return bool(next_path and next_path.startswith("/") and not next_path.startswith("//") and not next_path.startswith("/login"))
 
 
 def _active_accounts_for_opening(db: Session) -> list[Account]:
@@ -127,6 +133,52 @@ def _month_context(db: Session, year: int, month: int) -> dict:
         "max_day": max_day,
         "tx_type_labels": TX_TYPE_LABELS,
     }
+
+
+@router.get("/login", response_class=HTMLResponse)
+def login_page(request: Request) -> HTMLResponse:
+    next_path = request.query_params.get("next", "/")
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {"next_path": next_path if _is_safe_next(next_path) else "/", "error": None},
+    )
+
+
+@router.post("/login", response_class=HTMLResponse)
+def login_submit(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    next_path: str = Form(default="/"),
+    db: Session = Depends(get_db),
+) -> Response:
+    user = db.scalar(select(User).where(User.name == username))
+    if user is None or not verify_password(password, user.password_hash):
+        return templates.TemplateResponse(
+            request,
+            "login.html",
+            {"next_path": next_path if _is_safe_next(next_path) else "/", "error": "ユーザー名またはパスワードが正しくありません。"},
+            status_code=401,
+        )
+
+    response = RedirectResponse(url=next_path if _is_safe_next(next_path) else "/", status_code=303)
+    response.set_cookie(
+        AUTH_COOKIE_NAME,
+        str(user.id),
+        httponly=True,
+        samesite="lax",
+        secure=False,
+        path="/",
+    )
+    return response
+
+
+@router.post("/logout")
+def logout() -> RedirectResponse:
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    return response
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -423,12 +475,11 @@ async def delete_accounts_web(
 @router.post("/settings/categories")
 def create_category_web(
     name: str = Form(...),
-    is_fixed: bool = Form(default=False),
     year: int | None = Form(default=None),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     selected_year = _resolve_year(year)
-    db.add(Category(name=name, is_fixed=is_fixed, is_active=True, user_id=1))
+    db.add(Category(name=name, is_fixed=False, is_active=True, user_id=1))
     db.commit()
     return RedirectResponse(url=f"/settings?year={selected_year}", status_code=303)
 
